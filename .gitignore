@@ -4,9 +4,11 @@
 /node_modules
 /.pnp
 .pnp.js
+.npmignore
 
 # testing
 /coverage
+chunked.txt
 
 # next.js
 /.next/
@@ -14,6 +16,9 @@
 
 # production
 /build
+/dist
+*.tgz
+*.zip
 
 # misc
 .DS_Store
@@ -33,3 +38,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+

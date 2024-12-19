@@ -1,112 +1,100 @@
-# LLM Chunk
 
-Super simple and easy-to-use text splitter for Node.js
+# llm-text-splitter
 
-Perfect for quickly building LLM prototypes or small-scale applications in Node.js.
+A lightweight TypeScript library for splitting text into chunks based on various criteria, ideal for preparing text for Large Language Models (LLMs) and for RAG applications.
 
-With a compressed (ZIP) file size of just 1KB.
+## Features
+
+* **Multiple Splitting Methods:** Split text by sentences, paragraphs, markdown headings, or custom regular expressions.
+* **Size Control:** Define minimum and maximum chunk lengths.
+* **Overlap:**  Introduce overlapping text between chunks to maintain context.
+* **Extra Space Removal:** Optionally remove extra whitespace within chunks.
+* **Simple API:** Easy to integrate and use.
 
 ## Installation
 
-```sh
-npm install llm-chunk
+```bash
+npm install llm-text-splitter
 ```
+
 
 ## Usage
 
-Easily integrate it into your project with just a few lines of code:
+```typescript
+import { splitter } from './llm-text-splitter';
+
+// Example 1: Splitting by sentences with overlap
+const text = "This is the first sentence. This is the second, slightly longer sentence. And a final short one.";
+const chunks = splitter(text, { maxLength: 30, overlap: 5, splitter: 'sentence' });
+console.log(chunks);
+// Expected output (may vary slightly depending on overlap handling):
+// [
+//   "This is the first sentence.",
+//   "sentence. This is the second,",
+//   "second, slightly longer sentence.",
+//   "sentence. And a final short one."
+// ]
+
+// Example 2: Splitting by paragraphs
+const text2 = "This is the first paragraph.\n\nThis is the second paragraph, which is a bit longer.\n\nShort paragraph.";
+const chunks2 = splitter(text2, { maxLength: 50, splitter: 'paragraph' });
+console.log(chunks2);
+// Expected output:
+// [
+//   "This is the first paragraph.",
+//   "This is the second paragraph, which is a bit longer.",
+//   "Short paragraph."
+// ]
+
+// Example 3: Splitting by Markdown headings
+const text3 = "# Heading 1\nThis is some text under heading 1.\n\n## Heading 2\nMore text here.\n\n### Heading 3\nAnd even more text.";
+const chunks3 = splitter(text3, { splitter: 'markdown' });
+console.log(chunks3);
+// Expected output:
+// [
+//   "# Heading 1\nThis is some text under heading 1.",
+//   "## Heading 2\nMore text here.",
+//   "### Heading 3\nAnd even more text."
+// ]
+
+// Example 4: Custom regex splitter
+const text4 = "Item 1; Item 2; Item 3; Item 4";
+const chunks4 = splitter(text4, { regex: /;/ });
+console.log(chunks4);
+// Expected output:
+// ["Item 1", " Item 2", " Item 3", " Item 4"]
+
+
+// Example 5: Removing Extra Spaces
+const text5 = "This  is   a   string   with   extra    spaces.";
+const chunks5 = splitter(text5, { maxLength: 10, removeExtraSpaces: true });
+console.log(chunks5);
+```
+
+## API
 
 ```typescript
-import { chunk } from 'llm-chunk'
-
-const text = `
-Hello World.
-This is
- a test sentence! Have a good day? Haha. Haha
-`;
-
-// Default options
-const chunks = chunk(text, {
-    minLength: 0,          // number of minimum characters into chunk
-    maxLength: 1000,       // number of maximum characters into chunk
-    splitter: "paragraph", // paragraph | sentence
-    overlap: 0,            // number of overlap chracters
-    delimiters: ""         // regex for base split method
-});
-
-// The result shows 'paragraph' splitter as default
-chunk(text)
-// Results
-[
-  'Hello World.\nThis is\n a test sentence! Have a good day? Haha. Haha'
-]
-
-chunk(text, { minLength: 7, maxLength: 9 })
-// Results
-[
-  'Hello World.\nThis',
-  ' is\n a test',
-  ' sentence! Have a good day? Haha. Haha'
-]
+splitter(text: string, options: SplitOptions = {}): string[]
 ```
 
-Use 'sentence' splitter:
+### Parameters
 
-```typescript
-chunk(text, { splitter: "sentence" })
-// Results
-[
-  'Hello World.',
-  'This is\n',
-  'a test sentence!',
-  'Have a good day?',
-  'Haha.',
-  'Haha'
-]
+* `text`: The input text string.
+* `options`: An optional object with the following properties:
+    * `minLength`: The minimum length of a chunk (default: 0).
+    * `maxLength`: The maximum length of a chunk (default: 5000).
+    * `overlap`: The number of overlapping characters between chunks (default: 0).
+    * `splitter`: The splitting method ('sentence', 'paragraph', 'markdown') (default: 'sentence').
+    * `regex`: A custom regular expression for splitting.  Overrides `splitter` if provided.
+    * `removeExtraSpaces`: Whether to remove extra spaces within chunks (default: false).
 
-chunk(text, { minLength: 10, splitter: "sentence" })
-// Results
-[
-  'Hello World.',
-  'This is\n a test sentence!',
-  'Have a good day?',
-  'Haha. Haha'
-]
 
-chunks = chunk(text, { overlap: 3, splitter: "sentence" });
-// Results
-[
-  'Hello World.',
-  ' World. This is\n',
-  ' is\n a test sentence!',
-  ' sentence! Have a good day?',
-  ' day? Haha.',
-  ' Haha. Haha',
-  ' Haha'
-]
-```
+### Return Value
 
-For more examples and chunk results, please check the "samples" folder.
+An array of strings, where each string is a chunk of the input text.
 
-## Performance
 
-It's super fast. But there's still room for performance improvement.
+## Contributing
 
-Patches and PRs are welcome.
+Contributions are welcome!  Please open an issue or submit a pull request.
 
-```
-----------
-Chunk 163948 characters into 436 chunks
-----------
-Total: 12.169ms (100 times)
-Average: 0.122ms
-```
-
-## Family
-
-- [In-memory VectorDB](https://github.com/golbin/imvectordb)
-  - Super simple and easy-to-use in-memory vector DB for Node.js
-
-## License
-
-MIT

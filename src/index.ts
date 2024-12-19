@@ -1,107 +1,182 @@
-type SplitOptions = {
+export type SplitterType = 'sentence' | 'paragraph' | 'markdown';
+
+export interface SplitOptions {
     minLength?: number;
     maxLength?: number;
     overlap?: number;
-    splitter?: "sentence" | "paragraph";
-    delimiters?: string;
-};
-
-function splitCunk(currChunks: string[], maxLength: number, overlap: number) {
-    const chunkString = currChunks.join(" ");
-    let subChunk = chunkString.substring(0, maxLength);
-    let restChunk = chunkString.substring(maxLength);
-
-    let blankPosition = restChunk.indexOf(" ");
-    if (blankPosition == -1) {
-        blankPosition = restChunk.indexOf("\n");
-    }
-
-    if (blankPosition !== -1) {
-        subChunk += restChunk.substring(0, blankPosition);
-        restChunk = restChunk.substring(blankPosition);
-    }
-
-    let overlapText = "";
-
-    if (overlap) {
-        blankPosition = subChunk.lastIndexOf(" ", subChunk.length - overlap);
-        if (blankPosition == -1) {
-            blankPosition = subChunk.lastIndexOf(
-                "\n",
-                subChunk.length - overlap
-            );
-        }
-
-        if (blankPosition !== -1) {
-            overlapText = subChunk.substring(blankPosition);
-        }
-    }
-
-    return [subChunk, restChunk, overlapText];
+    splitter?: SplitterType;
+    regex?: RegExp | string;
+    removeExtraSpaces?: boolean;
 }
 
-export function chunk(text: string, options: SplitOptions = {}): string[] {
-    const {
-        minLength = 0,
-        maxLength = 1000,
-        overlap = 0,
-        splitter = "paragraph",
-        delimiters = "", // regex
-    } = options;
-
-    let regex = delimiters;
-
-    if (delimiters === "") {
-        if (splitter === "sentence") {
-            regex = "([.!?\\n])\\s*";
-        } else {
-            regex = "\\n{2,}";
+const findBreakPoint = (
+    text: string,
+    position: 'first' | 'last',
+    overlap: number = 0
+) => {
+    let breakPoint = -1;
+    if (position === 'first') {
+        breakPoint = text.indexOf(' ');
+        if (breakPoint === -1) {
+            breakPoint = text.indexOf('\n');
+        }
+    } else {
+        breakPoint = text.lastIndexOf(' ', text.length - overlap);
+        if (breakPoint === -1) {
+            breakPoint = text.lastIndexOf('\n', text.length - overlap);
         }
     }
 
-    const baseChunk = text.split(new RegExp(`${regex}`));
+    return breakPoint;
+};
 
-    let chunks: string[] = [];
-    let currChunks: string[] = [];
+const getOverlapText = (subChunk: string, overlap: number) => {
+    if (overlap <= 0) {
+        return '';
+    }
+    const breakPoint = findBreakPoint(subChunk, 'last', overlap);
+
+    const overlapText =
+        breakPoint === -1
+            ? subChunk.substring(subChunk.length - overlap)
+            : subChunk.substring(breakPoint);
+
+    return overlapText;
+};
+
+const splitChunk = (
+    currChunks: string[],
+    maxLength: number,
+    overlap: number
+) => {
+    let chunkString = currChunks.join(' ');
+    const subChunks = [];
+    let restChunk = '';
+
+    do {
+        let subChunk = chunkString.substring(0, maxLength);
+        
+        if (subChunk.trim() === '') continue;
+
+        let leftingText = chunkString.substring(maxLength);
+
+        const breakPoint = findBreakPoint(leftingText, 'first');
+        if (breakPoint !== -1) {
+            subChunk += leftingText.substring(0, breakPoint);
+            leftingText = leftingText.substring(breakPoint);
+        }
+
+        subChunks.push(subChunk);
+
+        const overlapText = getOverlapText(subChunk, overlap);
+        leftingText = overlapText + leftingText;
+        chunkString = leftingText;
+
+        if (leftingText.length <= maxLength) {
+            restChunk = leftingText;
+        }
+    } while (chunkString.length > maxLength);
+
+    return { subChunks, restChunk };
+};
+
+const getRegExp = (splitter: SplitterType) => {
+    let regex: RegExp;
+    switch (splitter) {
+        case 'sentence':
+            regex = /(?<=[.!?])(?=([\s+A-Z]))/g;
+            break;
+
+        case 'paragraph':
+            regex = /(?<=.)(?=\n+[A-Z]|#+)/g;
+            break;
+
+        case 'markdown':
+            regex = /(?=\n+#+\s)/;
+            break;
+
+        default:
+            throw new Error(`Invalid splitter name: ${splitter}.`);
+    }
+    return regex;
+};
+
+const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
+    const { minLength = 0, maxLength = 5000, overlap = 0 } = options;
+    const chunks = [];
+    let currChunks = [];
     let currChunkLength = 0;
 
-    for (let i = 0; i < baseChunk.length; i += 2) {
-        let subChunk = baseChunk[i];
-        if (baseChunk[i + 1]) {
-            subChunk += baseChunk[i + 1];
+    for (let i = 0; i < baseChunks.length; i += 2) {
+        let subChunk = baseChunks[i];
+
+        if (baseChunks[i + 1]) {
+            subChunk += baseChunks[i + 1];
         }
 
         currChunks.push(subChunk);
+
         currChunkLength += subChunk.length;
 
         if (currChunkLength >= minLength) {
-            const [subChunk, restChunk, overlapText] = splitCunk(
+            const { subChunks, restChunk } = splitChunk(
                 currChunks,
                 maxLength,
                 overlap
             );
 
-            chunks.push(subChunk);
-
+            chunks.push(...subChunks);
+            currChunkLength = restChunk.length;
             currChunks = [];
-            currChunkLength = overlapText.length + restChunk.length;
 
-            if (overlapText && i < baseChunk.length)
-                currChunks.push(overlapText);
             if (restChunk) currChunks.push(restChunk);
         }
     }
 
     if (currChunks.length) {
-        const [subChunk, restChunk, _] = splitCunk(
-            currChunks,
-            maxLength,
-            overlap
-        );
+        const { subChunks, restChunk } = splitChunk(currChunks, maxLength, 0);
 
-        if (subChunk) chunks.push(subChunk);
+        if (subChunks.length) chunks.push(...subChunks);
         if (restChunk) chunks.push(restChunk);
     }
 
     return chunks;
-}
+};
+
+export const splitter = (text: string, options: SplitOptions = {}) => {
+    const {
+        minLength,
+        maxLength,
+        splitter = 'sentence',
+        regex = null,
+        removeExtraSpaces = false,
+    } = options;
+
+    if (minLength && maxLength && minLength > maxLength)
+        throw new Error('maxLength sould be greater than minLength');
+
+    let regExp = regex;
+    let baseChunks: string[] = [];
+
+    if (!regExp) {
+        regExp = getRegExp(splitter);
+
+        baseChunks = text.split(regExp);
+
+        let chunks = handleChunkSize(baseChunks, options);
+
+        if (removeExtraSpaces)
+            chunks = chunks.map((chunk) => chunk.replace(/\s+/g, ' ').trim());
+
+        return chunks;
+    } else {
+        baseChunks = text.split(regExp);
+
+        let chunks = handleChunkSize(baseChunks, options);
+
+        if (removeExtraSpaces)
+            chunks = chunks.map((chunk) => chunk.replace(/\s+/g, ' ').trim());
+
+        return chunks;
+    }
+};

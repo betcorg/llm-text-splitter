@@ -1,9 +1,10 @@
-type SplitOptions = {
+export type SplitterType = 'sentence' | 'paragraph' | 'markdown';
+export interface SplitOptions {
     minLength?: number;
     maxLength?: number;
     overlap?: number;
-    splitter?: "sentence" | "paragraph";
-    delimiters?: string;
-};
-export declare function chunk(text: string, options?: SplitOptions): string[];
-export {};
+    splitter?: SplitterType;
+    regex?: RegExp | string;
+    removeExtraSpaces?: boolean;
+}
+export declare const splitter: (text: string, options?: SplitOptions) => string[];

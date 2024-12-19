@@ -1,10 +1,16 @@
 {
-  "name": "llm-chunk",
+  "name": "llm-text-splitter",
   "version": "0.0.1",
-  "description": "A super simple text splitter for LLM",
-  "author": "Jin Kim <golbin@gmail.com>",
+  "description": "A super simple text splitter for RAG applications",
   "license": "MIT",
-  "homepage": "https://github.com/golbin/llm-chunk",
+  "author": {
+    "name": "H. Franc."
+  },
+  "homepage": "https://github.com/betcorg/llm-text-splitter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/betcorg/llm-text-splitter"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exclude": [
@@ -15,18 +21,35 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "mocha -r ts-node/esm  --extension ts 'test/**/*.spec.ts'"
-  },
-  "dependencies": {
+    "build": "rm -rf dist/ && tsc",
+    "pk": "rm -rf *.tgz && pnpm run build && pnpm pack",
+    "test": "mocha -r ts-node/esm  --extension ts 'test/**/*.spec.ts'",
+    "release": "pnpm run build && npm publish"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.4.1",
     "chai": "^4.3.7",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
     "mocha": "^10.2.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "typescript-eslint": "^8.18.1"
+  },
+  "keywords": [
+    "llm",
+    "split",
+    "text",
+    "text splitter",
+    "text chunking",
+    "split markdown",
+    "sentence",
+    "paragraph"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

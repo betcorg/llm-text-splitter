@@ -1,6 +1,6 @@
-import fs from "fs";
+import fs from 'fs';
 
-import { chunk } from "../dist";
+import { splitter } from '../dist';
 
 const performanceLog = (
     title: string,
@@ -18,12 +18,12 @@ const performanceLog = (
 };
 
 const chunkTest = (inputFile: string, outputFile: string) => {
-    let text = fs.readFileSync(inputFile, "utf8");
+    const text = fs.readFileSync(`samples/${inputFile}`, 'utf8');
     let chunks: string[] = [];
 
-    let startTime = performance.now();
+    const startTime = performance.now();
     for (let i = 0; i < 100; i++) {
-        chunks = chunk(text);
+        chunks = splitter(text);
     }
     performanceLog(
         `Chunk ${text.length} characters in ${chunks.length} chunks, 100 times.`,
@@ -32,7 +32,7 @@ const chunkTest = (inputFile: string, outputFile: string) => {
         100
     );
 
-    fs.writeFileSync(outputFile, chunks.join("\n\n-----------\n\n"), "utf8");
+    fs.writeFileSync(outputFile, chunks.join('\n\n-----------\n\n'), 'utf8');
 };
 
-chunkTest("alice.txt", "chunked.txt");
+chunkTest('lorem.txt', 'chunked.txt');
