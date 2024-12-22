@@ -21,7 +21,7 @@ npm install llm-text-splitter
 ## Usage
 
 ```typescript
-import { splitter } from './llm-text-splitter';
+import { splitter } from 'llm-text-splitter';
 
 // Example 1: Splitting by sentences with overlap
 const text = "This is the first sentence. This is the second, slightly longer sentence. And a final short one.";
@@ -35,6 +35,7 @@ console.log(chunks);
 //   "sentence. And a final short one."
 // ]
 
+
 // Example 2: Splitting by paragraphs
 const text2 = "This is the first paragraph.\n\nThis is the second paragraph, which is a bit longer.\n\nShort paragraph.";
 const chunks2 = splitter(text2, { maxLength: 50, splitter: 'paragraph' });
@@ -46,6 +47,7 @@ console.log(chunks2);
 //   "Short paragraph."
 // ]
 
+
 // Example 3: Splitting by Markdown headings
 const text3 = "# Heading 1\nThis is some text under heading 1.\n\n## Heading 2\nMore text here.\n\n### Heading 3\nAnd even more text.";
 const chunks3 = splitter(text3, { splitter: 'markdown' });
@@ -56,6 +58,7 @@ console.log(chunks3);
 //   "## Heading 2\nMore text here.",
 //   "### Heading 3\nAnd even more text."
 // ]
+
 
 // Example 4: Custom regex splitter
 const text4 = "Item 1; Item 2; Item 3; Item 4";
@@ -69,6 +72,8 @@ console.log(chunks4);
 const text5 = "This  is   a   string   with   extra    spaces.";
 const chunks5 = splitter(text5, { maxLength: 10, removeExtraSpaces: true });
 console.log(chunks5);
+// Expected output:
+// "This is a string with extra spaces".
 ```
 
 ## API
