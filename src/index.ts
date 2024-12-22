@@ -84,7 +84,7 @@ const getRegExp = (splitter: SplitterType) => {
     let regex: RegExp;
     switch (splitter) {
         case 'sentence':
-            regex = /(?<=[.!?])(?=([\s+A-Z]))/g;
+            regex = /(?<=[.!?])(?=([\s\nA-Z]))/g;
             break;
 
         case 'paragraph':
@@ -92,11 +92,11 @@ const getRegExp = (splitter: SplitterType) => {
             break;
 
         case 'markdown':
-            regex = /(?=\n+#+\s)/;
+            regex = /(?=(\n+|\s+)#+\s)/;
             break;
 
         default:
-            throw new Error(`Invalid splitter name: ${splitter}.`);
+            throw new Error(`Invalid splitter type: ${splitter}. Use 'sentence', 'paragraph' or 'markdown' instead.` );
     }
     return regex;
 };
