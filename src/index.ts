@@ -88,7 +88,7 @@ const getRegExp = (splitter: SplitterType) => {
             break;
 
         case 'paragraph':
-            regex = /(?<=.)(?=\n+[A-Z]|#+)/g;
+            regex = /(?<=.(\n+|\s+))(?=\n+[A-Z]|#+)/g;
             break;
 
         case 'markdown':
@@ -107,12 +107,8 @@ const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
     let currChunks = [];
     let currChunkLength = 0;
 
-    for (let i = 0; i < baseChunks.length; i += 2) {
-        let subChunk = baseChunks[i];
-
-        if (baseChunks[i + 1]) {
-            subChunk += baseChunks[i + 1];
-        }
+    for (let i = 0; i < baseChunks.length; i ++) {
+        const subChunk = baseChunks[i];
 
         currChunks.push(subChunk);
 
