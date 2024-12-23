@@ -149,7 +149,7 @@ export const splitter = (text: string, options: SplitOptions = {}) => {
     } = options;
 
     if (minLength && maxLength && minLength > maxLength)
-        throw new Error('maxLength sould be greater than minLength');
+        throw new Error('maxLength should be greater than minLength');
 
     let regExp = regex;
     let baseChunks: string[] = [];
