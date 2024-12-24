@@ -14,27 +14,16 @@ const findBreakPoint = (
     type: 'chunk' | 'overlap',
     overlap: number = 0
 ) => {
-    let breakPoint = -1;
-
     const words = text.split(' ');
     const lastWord = words[words.length - 1];
 
+    const textLength = text.length;
+
     if (type === 'chunk') {
-        breakPoint = text.length - lastWord.length - 1;
-    } else if (type === 'overlap') {
-        breakPoint = text.lastIndexOf(
-            ' ',
-            text.length - overlap + lastWord.length + 1
-        );
-        if (breakPoint === -1) {
-            breakPoint = text.lastIndexOf(
-                '\n',
-                text.length - overlap + lastWord.length + 1
-            );
-        }
+        return textLength - lastWord.length - 1;
     }
 
-    return breakPoint;
+    return text.lastIndexOf(' ', textLength - overlap + lastWord.length +1)
 };
 
 const getOverlapText = (subChunk: string, overlap: number) => {
