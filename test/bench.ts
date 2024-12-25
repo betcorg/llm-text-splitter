@@ -35,4 +35,4 @@ const chunkTest = (inputFile: string) => {
     fs.writeFileSync('test/chunked.txt', chunks.join('\n\n-----------\n\n'), 'utf8');
 };
 
-chunkTest('lorem.txt');
+chunkTest('lorem-ipsum.txt');
