@@ -35,10 +35,10 @@ console.log(chunks);
 // Expected output (may vary slightly depending on overlap handling):
 // [
 //   "This is the first sentence.",
-//   "sentence. This is the second,",
-//   "second, slightly longer sentence.",
-//   "sentence. And a final short one."
-//   "short one."
+//   "sentence.  This is the",
+//   "the second, slightly longer",
+//   "longer  sentence.  And a",
+//   "And a final short one."
 // ]
 ```
 
