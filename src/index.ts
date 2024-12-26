@@ -39,7 +39,7 @@ export interface SplitOptions {
 }
 
 // Type alias for the chunk type.
-type ChunkType = 'within-range' | 'oversize' | 'remaining';
+type ChunkType = 'within_range' | 'oversize';
 
 // Regular expressions for different splitter types.
 const REGEX = {
@@ -70,7 +70,7 @@ const getOverlapText = (subChunk: string, overlap: number) => {
         return '';
     } else if (overlap > subChunk.length) {
         throw new Error(
-            'Overlap value is grater than the chunk size, try with a lower value'
+            'Overlap value is grater than the chunk size, try with a lower value or set minLength > overlap'
         );
     }
     const breakPoint = findBreakPoint(subChunk, 'overlap', overlap);
@@ -78,8 +78,8 @@ const getOverlapText = (subChunk: string, overlap: number) => {
     // Extract the overlap text based on the breakpoint.
     const overlapText =
         breakPoint === -1
-            ? subChunk.substring(subChunk.length - overlap)
-            : subChunk.substring(breakPoint);
+            ? subChunk.slice(subChunk.length - overlap)
+            : subChunk.slice(breakPoint);
 
     return overlapText.trim();
 };
@@ -91,37 +91,36 @@ const splitChunk = (
     overlap: number
 ) => {
     const subChunks: string[] = [];
-    let leftOverText = '';
+    let remainingText = '';
     let chunkString = currChunks.join(' ');
 
-    do {
-        let subChunk = chunkString.substring(0, maxLength);
+    while (chunkString.length > maxLength) {
+        let subChunk = chunkString.slice(0, maxLength);
 
         if (subChunk.trim() === '') continue;
 
-        let remaining = chunkString.substring(maxLength);
+        let remaining = chunkString.slice(maxLength);
 
         // Find a breakpoint within maxLength to split at a word boundary.
         const breakPoint = findBreakPoint(subChunk, 'chunk');
         if (breakPoint !== -1) {
-            remaining = subChunk.substring(breakPoint) + remaining;
-            subChunk = subChunk.substring(0, breakPoint);
+            remaining = subChunk.slice(breakPoint) + remaining;
+            subChunk = subChunk.slice(0, breakPoint);
         }
 
         subChunks.push(subChunk);
 
-        if (remaining.length <= maxLength) {
-            leftOverText = remaining;
+        if (remaining.length > maxLength) {
+            const overlapText = getOverlapText(subChunk, overlap);
+            chunkString = overlapText + remaining;
+        } else {
+            remainingText = remaining;
             chunkString = '';
         }
+    }
 
-        const overlapText = getOverlapText(subChunk, overlap);
-        chunkString = overlapText + remaining;
-    } while (chunkString.length > maxLength);
-
-    return { subChunks, remainigText: leftOverText };
+    return { subChunks, remaining: remainingText };
 };
-
 
 // Handles chunk size based on minLength and maxLength, managing overlap.
 const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
@@ -136,36 +135,31 @@ const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
     };
 
     const buildChunks = (type: ChunkType) => {
+        let remainingText = '';
         const builtChunks: string[] = [];
-        let remainig = '';
         const overlapChunk = chunks[chunks.length - 1];
         const overlapText = getOverlapText(overlapChunk, overlap);
 
-        if (type === 'within-range') {
+        if (type === 'within_range') {
             const subChunk = overlapText + currChunks.join(' ');
             builtChunks.push(subChunk);
         }
 
         if (type === 'oversize') {
             currChunks.unshift(overlapText);
-            const { subChunks, remainigText } = splitChunk(
+            const { subChunks, remaining } = splitChunk(
                 currChunks,
                 maxLength,
                 overlap
             );
             builtChunks.push(...subChunks);
-            remainig = remainigText;
-        }
-
-        if (type === 'remaining') {
-            const subChunk = overlapText + currChunks.join(' ');
-            builtChunks.push(subChunk);
+            remainingText = remaining;
         }
 
         chunks.push(...builtChunks);
         resetState();
 
-        if (remainig) currChunks.push(remainig);
+        if (remainingText) currChunks.push(remainingText);
     };
 
     for (let i = 0; i < baseChunks.length; i++) {
@@ -175,19 +169,19 @@ const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
 
         currChunks.push(subChunk);
 
-        currChunksLength = currChunks.join(' ').length;
+        currChunksLength = currChunks.join('').length;
 
         if (currChunksLength >= minLength) {
             if (currChunksLength > maxLength) {
                 buildChunks('oversize');
             } else {
-                buildChunks('within-range');
+                buildChunks('within_range');
             }
         }
     }
 
     if (currChunks.length) {
-        buildChunks('remaining');
+        buildChunks('within_range');
     }
 
     return chunks;
@@ -203,7 +197,6 @@ const getRegExp = (splitter: SplitterType): RegExp => {
     }
     return regex;
 };
-
 
 /**
  * Splits a given text into chunks based on the provided options.
@@ -239,4 +232,3 @@ export const splitter = (text: string, options: SplitOptions = {}) => {
 
     return chunks;
 };
-
