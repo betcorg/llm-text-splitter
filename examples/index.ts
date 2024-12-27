@@ -1,22 +1,53 @@
-import fs from 'fs';
+import * as fs from 'fs/promises';
 import { splitter, SplitOptions } from '../dist';
 
-const text = fs.readFileSync('samples/article.md', 'utf-8');
+(async () => {
+    const text = await fs.readFile('samples/lorem-ipsum.txt', 'utf-8');
 
-const options: SplitOptions = {
-    // minLength: 0,
-    maxLength: 1000,
-    splitter: 'markdown',
-    // overlap: 5,
-    // regex: '',
-    // removeExtraSpaces: true,
-};
+    const createFile = async (filePath: string, chunks: string[]) => {
+        let chunkText = '';
+        chunks.forEach((sentence, i) => {
+            chunkText += `\nIndex: ${i}\n`;
+            chunkText += `\n${sentence}\n`;
+            chunkText += `\nChunck size: ${sentence.length}`;
+            chunkText += '\n*****************************\n';
+        });
+        await fs.writeFile(filePath, chunkText);
+    };
 
-const chunks = splitter(text, options);
+    /**
+     * Default values.
+     */
+    let options: SplitOptions = {
+        minLength: 0,
+        maxLength: 5000,
+        splitter: 'sentence',
+        overlap: 0,
+        regex: '',
+        removeExtraSpaces: false,
+    };
 
-console.log(chunks.length, 'chunks\n');
+    /**
+     * Split text into sentences.
+     */
+    const sentences = splitter(text, options);
+    await createFile('examples/sentences.txt', sentences);
 
-for (const chunk of chunks) {
-    console.log(chunk);
-    console.log('\n*********************************\n');
-}
+    /**
+     * Split text into paragraphs.
+     */
+    options = {
+        splitter: 'paragraph',
+    };
+    const paragraphs = splitter(text, options);
+    await createFile('examples/paragraphs.txt', paragraphs);
+
+    /**
+     * Split text into paragraphs.
+     */
+    options = {
+        splitter: 'markdown',
+    };
+    const topics = splitter(text, options);
+    await createFile('examples/paragraphs.txt', topics);
+})();
