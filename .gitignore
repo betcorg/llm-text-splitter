@@ -5,8 +5,9 @@ node_modules/
 .npmignore
 
 # testing
-/coverage
-chunked.txt
+test/local.ts
+examples/*.txt
+*.txt
 
 # production
 build/
