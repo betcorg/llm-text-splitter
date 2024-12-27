@@ -23,9 +23,19 @@ describe('Text splitters', () => {
         expect(sentences.length).to.equal(795);
     });
 
+    it('Total sentences length sould be of 42446 characters.', async () => {
+        const sentences = splitter(text);
+        expect(sentences.join('').length).to.equal(42446);
+    });
+
     it('Text should be splitted into 63 paragraphs.', async () => {
         const paragraphs = splitter(text, { splitter: 'paragraph' });
         expect(paragraphs.length).to.equal(63);
+    });
+
+    it('Total paragraphs length sould be of 42446 characters.', async () => {
+        const paragraphs = splitter(text, { splitter: 'paragraph' });
+        expect(paragraphs.join('').length).to.equal(42446);
     });
 
     it('Markdown text should be splitted into 7 topics', async () => {
