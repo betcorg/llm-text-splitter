@@ -41,6 +41,21 @@ export interface SplitOptions {
 // Type alias for the chunk type.
 type ChunkType = 'within_range' | 'oversize';
 
+// Type alias for the breakpoint type.
+type BreakPointOptions = {
+    type: 'chunk' | 'overlap';
+    maxLength?: number;
+    overlap?: number;
+};
+
+const CONFIGS = {
+    minLength: 0,
+    maxLength: 5000,
+    overlap: 0,
+    splitter: 'sentence',
+    removeExtraSpaces: false,
+};
+
 // Regular expressions for different splitter types.
 const REGEX = {
     sentence: /(?<=[.!?])(?=([\s\nA-Z]))/g,
@@ -49,39 +64,41 @@ const REGEX = {
 };
 
 // Finds the breakpoint for splitting a chunk or calculating overlap.
-const findBreakPoint = (
-    text: string,
-    type: 'chunk' | 'overlap',
-    overlap: number = 0
-) => {
+const findBreakPoint = (text: string, options: BreakPointOptions) => {
     const textLength = text.length;
-    const words = text.split(' ');
-    const lastWord = words[words.length - 1];
+    const {
+        type,
+        overlap = CONFIGS.overlap,
+        maxLength = CONFIGS.maxLength,
+    } = options;
 
     if (type === 'chunk') {
-        return textLength - lastWord.length - 1;
+        return text.lastIndexOf(' ', maxLength) || text.indexOf(' ', maxLength);
     }
-    return text.lastIndexOf(' ', textLength - overlap + lastWord.length + 1);
+    return (
+        text.lastIndexOf(' ', textLength - overlap) ||
+        text.indexOf(' ', textLength - overlap)
+    );
 };
 
 // Extracts the overlap text from a chunk.
 const getOverlapText = (subChunk: string, overlap: number) => {
     if (overlap <= 0 || !subChunk) {
         return '';
-    } else if (overlap > subChunk.length) {
-        throw new Error(
-            'Overlap value is grater than the chunk size, try with a lower value or set minLength > overlap'
-        );
     }
-    const breakPoint = findBreakPoint(subChunk, 'overlap', overlap);
 
-    // Extract the overlap text based on the breakpoint.
+    if (overlap >= subChunk.length) {
+        overlap = Math.floor(subChunk.length / 2);
+    }
+
+    const breakPoint = findBreakPoint(subChunk, { type: 'overlap', overlap });
+
     const overlapText =
         breakPoint === -1
             ? subChunk.slice(subChunk.length - overlap)
-            : subChunk.slice(breakPoint);
+            : subChunk.slice(breakPoint).trim();
 
-    return overlapText.trim();
+    return overlapText;
 };
 
 // Splits a chunk that exceeds maxLength into smaller sub-chunks.
@@ -95,28 +112,43 @@ const splitChunk = (
     let chunkString = currChunks.join(' ');
 
     while (chunkString.length > maxLength) {
-        let subChunk = chunkString.slice(0, maxLength);
+        if (chunkString.trim() === '') continue;
 
-        if (subChunk.trim() === '') continue;
+        let breakPoint = -1;
 
-        let remaining = chunkString.slice(maxLength);
-
-        // Find a breakpoint within maxLength to split at a word boundary.
-        const breakPoint = findBreakPoint(subChunk, 'chunk');
-        if (breakPoint !== -1) {
-            remaining = subChunk.slice(breakPoint) + remaining;
-            subChunk = subChunk.slice(0, breakPoint);
+        if (overlap >= maxLength) {
+            overlap = Math.floor(maxLength / 2);
         }
 
+        if (chunkString[maxLength] === ' ') {
+            breakPoint = maxLength;
+        } else {
+            breakPoint = findBreakPoint(chunkString, {
+                type: 'chunk',
+                maxLength,
+            });
+        }
+
+        if (breakPoint <= 0) {
+            breakPoint = maxLength;
+        }
+
+        const subChunk = chunkString.slice(0, breakPoint);
         subChunks.push(subChunk);
+
+        const remaining = chunkString.slice(breakPoint);
 
         if (remaining.length > maxLength) {
             const overlapText = getOverlapText(subChunk, overlap);
-            chunkString = overlapText + remaining;
+            chunkString = (overlapText + remaining).trim();
         } else {
             remainingText = remaining;
-            chunkString = '';
+            break;
         }
+    }
+
+    if (chunkString.length > 0 && chunkString.length <= maxLength) {
+        subChunks.push(chunkString);
     }
 
     return { subChunks, remaining: remainingText };
@@ -124,7 +156,11 @@ const splitChunk = (
 
 // Handles chunk size based on minLength and maxLength, managing overlap.
 const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
-    const { minLength = 0, maxLength = 5000, overlap = 0 } = options;
+    const {
+        minLength = CONFIGS.minLength,
+        maxLength = CONFIGS.maxLength,
+        overlap = CONFIGS.overlap,
+    } = options;
     const chunks: string[] = [];
     let currChunks: string[] = [];
     let currChunksLength = 0;
@@ -155,9 +191,9 @@ const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
             builtChunks.push(...subChunks);
             remainingText = remaining;
         }
+        resetState();
 
         chunks.push(...builtChunks);
-        resetState();
 
         if (remainingText) currChunks.push(remainingText);
     };
@@ -214,9 +250,9 @@ export const splitter = (text: string, options: SplitOptions = {}) => {
     const {
         minLength,
         maxLength,
-        splitter = 'sentence',
+        splitter = CONFIGS.splitter as SplitterType,
         regex = null,
-        removeExtraSpaces = false,
+        removeExtraSpaces = CONFIGS.removeExtraSpaces,
     } = options;
 
     if (minLength && maxLength && minLength > maxLength)
