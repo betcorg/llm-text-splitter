@@ -1,6 +1,6 @@
 {
   "name": "llm-text-splitter",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A super simple text splitter for RAG applications",
   "license": "MIT",
   "author": {
