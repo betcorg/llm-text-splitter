@@ -59,7 +59,7 @@ const CONFIGS = {
 // Regular expressions for different splitter types.
 const REGEX = {
     sentence: /(?<=[.!?])(?=([\s\nA-Z]))/g,
-    paragraph: /(?<=.(\n+|\s+))(?=\n+[A-Z]|#+)/g,
+    paragraph: /(?<=[.)\]!;](\n+))(?=\n+[A-Z0-9]|#+)/g,
     markdown: /(?=(\n+|\s+)#+\s)/,
 };
 
