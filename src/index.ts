@@ -48,128 +48,6 @@ type BreakPointOptions = {
     overlap?: number;
 };
 
-<<<<<<< HEAD
-const CONFIGS = {
-    minLength: 0,
-    maxLength: 5000,
-    overlap: 0,
-    splitter: 'sentence',
-    removeExtraSpaces: false,
-};
-
-// Regular expressions for different splitter types.
-const REGEX = {
-    sentence: /(?<=[.!?])(?=([\s\nA-Z]))/g,
-    paragraph: /(?<=[.)\]!;](\n+))(?=\n+[A-Z0-9]|#+)/g,
-    markdown: /(?=(\n+|\s+)#+\s)/,
-};
-
-// Finds the breakpoint for splitting a chunk or calculating overlap.
-const findBreakPoint = (text: string, options: BreakPointOptions) => {
-    const textLength = text.length;
-    const {
-        type,
-        overlap = CONFIGS.overlap,
-        maxLength = CONFIGS.maxLength,
-    } = options;
-
-    if (type === 'chunk') {
-        return text.lastIndexOf(' ', maxLength) || text.indexOf(' ', maxLength);
-    }
-    return (
-        text.lastIndexOf(' ', textLength - overlap) ||
-        text.indexOf(' ', textLength - overlap)
-    );
-};
-
-// Extracts the overlap text from a chunk.
-const getOverlapText = (subChunk: string, overlap: number) => {
-    if (overlap <= 0 || !subChunk) {
-        return '';
-    }
-
-    if (overlap >= subChunk.length) {
-        overlap = Math.floor(subChunk.length / 2);
-    }
-
-    const breakPoint = findBreakPoint(subChunk, { type: 'overlap', overlap });
-
-    const overlapText =
-        breakPoint === -1
-            ? subChunk.slice(subChunk.length - overlap)
-            : subChunk.slice(breakPoint).trim();
-
-    return overlapText;
-};
-
-// Splits a chunk that exceeds maxLength into smaller sub-chunks.
-const splitChunk = (
-    currChunks: string[],
-    maxLength: number,
-    overlap: number
-) => {
-    const subChunks: string[] = [];
-    let remainingText = '';
-    let chunkString = currChunks.join(' ');
-
-    while (chunkString.length > maxLength) {
-        if (chunkString.trim() === '') continue;
-
-        let breakPoint = -1;
-
-        if (overlap >= maxLength) {
-            overlap = Math.floor(maxLength / 2);
-        }
-
-        if (chunkString[maxLength] === ' ') {
-            breakPoint = maxLength;
-        } else {
-            breakPoint = findBreakPoint(chunkString, {
-                type: 'chunk',
-                maxLength,
-            });
-        }
-
-        if (breakPoint <= 0) {
-            breakPoint = maxLength;
-        }
-
-        const subChunk = chunkString.slice(0, breakPoint);
-        subChunks.push(subChunk);
-
-        const remaining = chunkString.slice(breakPoint);
-
-        if (remaining.length > maxLength) {
-            const overlapText = getOverlapText(subChunk, overlap);
-            chunkString = (overlapText + remaining).trim();
-        } else {
-            remainingText = remaining;
-            break;
-        }
-    }
-
-    if (chunkString.length > 0 && chunkString.length <= maxLength) {
-        subChunks.push(chunkString);
-    }
-
-    return { subChunks, remaining: remainingText };
-};
-
-// Handles chunk size based on minLength and maxLength, managing overlap.
-const handleChunkSize = (baseChunks: string[], options: SplitOptions) => {
-    const {
-        minLength = CONFIGS.minLength,
-        maxLength = CONFIGS.maxLength,
-        overlap = CONFIGS.overlap,
-    } = options;
-    const chunks: string[] = [];
-    let currChunks: string[] = [];
-    let currChunksLength = 0;
-
-    const resetState = () => {
-        currChunksLength = 0;
-        currChunks = [];
-=======
 export class Splitter {
     private options: Required<SplitOptions> = {
         regex: '',
@@ -178,13 +56,12 @@ export class Splitter {
         overlap: 0,
         splitter: 'sentence',
         removeExtraSpaces: false,
->>>>>>> dev
     };
 
     private static readonly REGEX = {
         sentence: /(?<=[.!?])(?=([\s\nA-Z]))/g,
-        paragraph: /(?<=.(\n+|\s+))(?=\n+[A-Z]|#+)/g,
-        markdown: /(?<=[.)\]}!;>`\n][\s\n]+)(?=[\s\n]+[A-Z]|[#*]{2,})/g,
+        paragraph: /(?<=[.\s]+\n+\s?)(?=[A-Z1-9*-“]+)/g,
+        markdown: /(?<=[.)\]}!;>`\s\n]+\n+\s?)(?=[#*]{2,}|[A-Z][a-z\s]+)/g,
     };
 
     constructor(options: SplitOptions = {}) {
@@ -198,7 +75,7 @@ export class Splitter {
             throw new Error('maxLength should be greater than minLength');
         }
     }
-
+    // Finds the breakpoint for splitting a chunk or calculating overlap.
     private findBreakPoint(text: string, options: BreakPointOptions): number {
         const textLength = text.length;
         const {
@@ -207,25 +84,22 @@ export class Splitter {
             maxLength = this.options.maxLength,
         } = options;
 
-        if (type === 'chunk') {
+        if (type === 'chunk')
             return (
                 text.lastIndexOf(' ', maxLength) || text.indexOf(' ', maxLength)
             );
-        }
+
         return (
             text.lastIndexOf(' ', textLength - overlap) ||
             text.indexOf(' ', textLength - overlap)
         );
     }
-
+    // Extracts the overlap text from the previous chunk.
     private getOverlapText(subChunk: string, overlap: number): string {
-        if (overlap <= 0 || !subChunk) {
-            return '';
-        }
+        if (overlap <= 0 || !subChunk) return '';
 
-        if (overlap >= subChunk.length) {
+        if (overlap >= subChunk.length)
             overlap = Math.floor(subChunk.length / 2);
-        }
 
         const breakPoint = this.findBreakPoint(subChunk, {
             type: 'overlap',
@@ -235,11 +109,11 @@ export class Splitter {
         const overlapText =
             breakPoint === -1
                 ? subChunk.slice(subChunk.length - overlap)
-                : subChunk.slice(breakPoint).trim();
+                : subChunk.slice(breakPoint);
 
-        return overlapText;
+        return overlapText.trimStart();
     }
-
+    // Splits a chunk that exceeds maxLength into smaller sub-chunks.
     private splitChunk(
         currChunks: string[],
         maxLength: number,
@@ -250,13 +124,11 @@ export class Splitter {
         let chunkString = currChunks.join(' ');
 
         while (chunkString.length > maxLength) {
-            if (chunkString.trim() === '') continue;
+            if (chunkString.trim().length <= 1) continue;
 
             let breakPoint = -1;
 
-            if (overlap >= maxLength) {
-                overlap = Math.floor(maxLength / 2);
-            }
+            if (overlap >= maxLength) overlap = Math.floor(maxLength / 2);
 
             if (chunkString[maxLength] === ' ') {
                 breakPoint = maxLength;
@@ -267,9 +139,7 @@ export class Splitter {
                 });
             }
 
-            if (breakPoint <= 0) {
-                breakPoint = maxLength;
-            }
+            if (breakPoint <= 0) breakPoint = maxLength;
 
             const subChunk = chunkString.slice(0, breakPoint);
             subChunks.push(subChunk);
@@ -285,9 +155,8 @@ export class Splitter {
             }
         }
 
-        if (chunkString.length > 0 && chunkString.length <= maxLength) {
-            subChunks.push(chunkString);
-        }
+        if (chunkString.length > 0 && chunkString.length <= maxLength)
+            subChunks.push(chunkString.trim());
 
         return { subChunks, remaining: remainingText };
     }
@@ -334,7 +203,7 @@ export class Splitter {
         for (let i = 0; i < baseChunks.length; i++) {
             const subChunk = baseChunks[i];
 
-            if (subChunk.trim() === '') continue;
+            if (subChunk.trim().length <= 1) continue;
 
             currChunks.push(subChunk);
 
@@ -349,20 +218,18 @@ export class Splitter {
             }
         }
 
-        if (currChunks.length) {
-            buildChunks('within_range');
-        }
+        if (currChunks.length) buildChunks('within_range');
 
         return chunks;
     }
 
     private getRegExp(splitter: SplitterType): RegExp {
         const regex = Splitter.REGEX[splitter];
-        if (!regex) {
+        if (!regex)
             throw new Error(
                 `Invalid splitter type: ${splitter}. Use 'sentence', 'paragraph' or 'markdown' instead.`
             );
-        }
+
         return regex;
     }
 
@@ -371,20 +238,26 @@ export class Splitter {
      * @param text The text to split.
      * @returns An array of strings, where each string is a chunk of the original text.
      */
-    public split(text: string): string[] {
+    public split(text: string, options: SplitOptions = {}): string[] {
+        this.options = { ...this.options, ...options };
         const { splitter, regex, removeExtraSpaces } = this.options;
 
-        if (splitter === 'markdown' && !this.options.minLength)
-            this.options.minLength = 250;
+        // Adjust the minimum size to avoid chunks that are too small
+        // when using the 'markdown' or 'paragraph' splitter.
+        if (!regex && splitter !== 'sentence' && !this.options.minLength)
+            this.options.minLength = 200;
 
         const regExp = regex || this.getRegExp(splitter);
 
+        // Replaces multiple new lines with only two new lines.
+        text = text.replace(/\n{2,}/g, '\n\n');
+
         const baseChunks = text.split(regExp);
+
         let chunks = this.handleChunkSize(baseChunks);
 
-        if (removeExtraSpaces) {
+        if (removeExtraSpaces)
             chunks = chunks.map((chunk) => chunk.replace(/\s+/g, ' ').trim());
-        }
 
         return chunks;
     }
